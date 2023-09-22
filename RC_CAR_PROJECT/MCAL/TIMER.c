@@ -1,0 +1,548 @@
+/*
+ * TIMER.c
+ *
+ *  Created on: Aug 28, 2023
+ *      Author: Mostafa Hisham
+ *      Layer : MCAL
+ *      SWC   : TIMER - IMPLEMENTATION
+ */
+#include<Std_Types.h>
+#include<Macros.h>
+#include<Registers.h>
+#include<TIMER.h>
+#include<TIMER_Private.h>
+#include<TIMER_Cfg.h>
+
+static void(*G_TIMER_OVF)(void) = NULL;
+static void(*G_TIMER_CTC0)(void) = NULL;
+static void(*G_TIMER_OVF2)(void) = NULL;
+static void(*G_TIMER_CTC2)(void) = NULL;
+static void(*G_TIMER_OVF1)(void) = NULL;
+static void(*G_TIMER_CTC1A)(void) = NULL;
+static void(*G_TIMER_CTC1B)(void) = NULL;
+u32 G_U32Counter;
+void __vector_10(void) __attribute__((signal));
+void __vector_10(void)
+{
+	if(G_TIMER_CTC0 != NULL)
+	{
+		G_TIMER_CTC0();
+	}
+}
+void __vector_11(void)   __attribute__((signal));
+void __vector_11(void)
+{
+	static u32 counter = 0;
+	counter++;
+	if(counter == G_U32Counter)
+	{
+		G_TIMER_OVF();
+		counter = 0;
+	}
+
+}
+void __vector_5(void) __attribute__((signal));
+void __vector_5(void)
+{
+	static u32 counter = 0;
+		counter++;
+		if(counter == G_U32Counter)
+		{
+			G_TIMER_OVF2();
+			counter = 0;
+		}
+}
+void __vector_4(void) __attribute__((signal));
+void __vector_4(void)
+{
+	if(G_TIMER_CTC2 != NULL)
+		{
+			G_TIMER_CTC2();
+		}
+}
+//OVF 1
+void __vector_9(void) __attribute__((signal));
+void __vector_9(void)
+{
+	static u32 counter = 0;
+			counter++;
+			if(counter == G_U32Counter)
+			{
+				G_TIMER_OVF1();
+				counter = 0;
+			}
+}
+//CTC 1A
+void __vector_7(void) __attribute__((signal));
+void __vector_7(void)
+{
+	if(G_TIMER_CTC1A != NULL)
+			{
+				G_TIMER_CTC1A();
+			}
+}
+//CTC 1B
+void __vector_8(void) __attribute__((signal));
+void __vector_8(void)
+{
+	if(G_TIMER_CTC1B != NULL)
+				{
+					G_TIMER_CTC1B();
+				}
+}
+
+void TIMER_0Init(void)//1
+{
+#if TIMER0_STATUS == TIMER_ON
+
+#if TIMER0_WGM == TIMER_OVF
+	CLR_BIT(TCCR0,TCCR0_WGM00);
+	CLR_BIT(TCCR0,TCCR0_WGM01);
+	/*ENABLE OVF Interrupt */
+	SET_BIT(TIMSK,TIMSK_TOIE0);
+#elif TIMER0_WGM == TIMER_CTC
+	CLR_BIT(TCCR0,TCCR0_WGM00);
+	SET_BIT(TCCR0,TCCR0_WGM01);
+	/******ENABLE CTC Interrupt ******/
+	SET_BIT(TIMSK,TIMSK_OCIE0);
+	/****** Set compare output mode ********/
+	#if NON_PWM_OC0 == OC_DISCONNECTED
+		CLR_BIT(TCCR0,TCCR0_COM00);
+		CLR_BIT(TCCR0,TCCR0_COM01);
+	#elif NON_PWM_OC0 == OC_TOGGLE
+		SET_BIT(TCCR0,TCCR0_COM00);
+		CLR_BIT(TCCR0,TCCR0_COM01);
+	#elif NON_PWM_OC0 == OC_CLEAR
+		CLR_BIT(TCCR0,TCCR0_COM00);
+		SET_BIT(TCCR0,TCCR0_COM01);
+	#elif NON_PWM_OC0 == OC_SET
+		SET_BIT(TCCR0,TCCR0_COM00);
+		SET_BIT(TCCR0,TCCR0_COM01);
+#else
+		#error "Undefined non-PWM Mode"
+	#endif
+#elif TIMER0_WGM == TIMER_PHASE_PWM
+	SET_BIT(TCCR0,TCCR0_WGM00);
+	CLR_BIT(TCCR0,TCCR0_WGM01);
+	/****** Set compare output mode ********/
+	#if PHASE_PWM0_MODE == OC_PHASE_DISCONNECTED
+		CLR_BIT(TCCR0,TCCR0_COM00);
+		CLR_BIT(TCCR0,TCCR0_COM01);
+	#elif PHASE_PWM0_MODE == OC_CLR_CTCUP_SET_CTCDOWN
+		CLR_BIT(TCCR0,TCCR0_COM00);
+		SET_BIT(TCCR0,TCCR0_COM01);
+	#elif PHASE_PWM0_MODE == OC_SET_CTCUP_CLR_CTCDOWN
+		SET_BIT(TCCR0,TCCR0_COM00);
+		SET_BIT(TCCR0,TCCR0_COM01);
+	#else
+		#error" Undefined phase correct pwm mode"
+	#endif
+#elif TIMER0_WGM == TIMER_FAST_PWM
+	SET_BIT(TCCR0,TCCR0_WGM00);
+	SET_BIT(TCCR0,TCCR0_WGM01);
+	/****** Set compare output mode ********/
+	#if FAST_PWM0_MODE == OC_PHASE_DISCONNECTED
+		CLR_BIT(TCCR0,TCCR0_COM00);
+		CLR_BIT(TCCR0,TCCR0_COM01);
+	#elif FAST_PWM0_MODE == OC_CLR_CTC_SET_TOP
+		CLR_BIT(TCCR0,TCCR0_COM00);
+		SET_BIT(TCCR0,TCCR0_COM01);
+	#elif FAST_PWM0_MODE == OC_SET_CTC_CLR_TOP
+		SET_BIT(TCCR0,TCCR0_COM00);
+		SET_BIT(TCCR0,TCCR0_COM01);
+	#else
+		#error "Undefined fast PWM Mode"
+	#endif
+#else
+	#error "Undefined Wave Generation Mode for timer0 "
+#endif
+#endif
+	/*******SET PRESCALER ************/
+#if TIMER0_PRESCALER == NO_CLK_SOURCE
+	CLR_BIT(TCCR0,TCCR0_CS00);
+	CLR_BIT(TCCR0,TCCR0_CS01);
+	CLR_BIT(TCCR0,TCCR0_CS02);
+#elif TIMER0_PRESCALER == NO_PRESCALING
+	SET_BIT(TCCR0,TCCR0_CS00);
+	CLR_BIT(TCCR0,TCCR0_CS01);
+	CLR_BIT(TCCR0,TCCR0_CS02);
+#elif TIMER0_PRESCALER == PRESCALER_8
+	CLR_BIT(TCCR0,TCCR0_CS00);
+	SET_BIT(TCCR0,TCCR0_CS01);
+	CLR_BIT(TCCR0,TCCR0_CS02);
+#elif TIMER0_PRESCALER == PRESCALER_64
+	SET_BIT(TCCR0,TCCR0_CS00);
+	SET_BIT(TCCR0,TCCR0_CS01);
+	CLR_BIT(TCCR0,TCCR0_CS02);
+#elif TIMER0_PRESCALER == PRESCALER_256
+	CLR_BIT(TCCR0,TCCR0_CS00);
+	CLR_BIT(TCCR0,TCCR0_CS01);
+	SET_BIT(TCCR0,TCCR0_CS02);
+#elif TIMER0_PRESCALER == PRESCALER_1024
+	SET_BIT(TCCR0,TCCR0_CS00);
+	CLR_BIT(TCCR0,TCCR0_CS01);
+	SET_BIT(TCCR0,TCCR0_CS02);
+#elif TIMER0_PRESCALER == PRESCALER_FALLING_EDGE
+	CLR_BIT(TCCR0,TCCR0_CS00);
+	SET_BIT(TCCR0,TCCR0_CS01);
+	SET_BIT(TCCR0,TCCR0_CS02);
+#elif TIMER0_PRESCALER == PRESCALER_RISING_EDGE
+	SET_BIT(TCCR0,TCCR0_CS00);
+	SET_BIT(TCCR0,TCCR0_CS01);
+	SET_BIT(TCCR0,TCCR0_CS02);
+#else
+	#error "Undefined PRE-scaler type"
+#endif
+}
+void TIMER_2Init(void)//8
+{
+#if TIMER2_STATUS == TIMER_ON
+
+#if TIMER2_WGM == TIMER_OVF
+	CLR_BIT(TCCR2,TCCR2_WGM20);
+	CLR_BIT(TCCR2,TCCR2_WGM21);
+	/*****OVERFLOW Interrupt Enable *******/
+	SET_BIT(TIMSK,TIMSK_TOIE2);
+#elif TIMER2_WGM == TIMER_CTC
+	CLR_BIT(TCCR2,TCCR2_WGM20);
+	SET_BIT(TCCR2,TCCR2_WGM21);
+	/**** CTC Interrupt Enable ****/
+	SET_BIT(TIMSK,TIMSK_OCIE2);
+	/* Set CTC MODE */
+	#if OC2_NON_PWM == OC_DISCONNECTED
+	CLR_BIT(TCCR2,TCCR2_COM20);
+	CLR_BIT(TCCR2,TCCR2_COM21);
+	#elif OC2_NON_PWM == OC_TOGGLE
+	SET_BIT(TCCR2,TCCR2_COM20);
+	CLR_BIT(TCCR2,TCCR2_COM21);
+	#elif OC2_NON_PWM == OC_CLEAR
+	CLR_BIT(TCCR2,TCCR2_COM20);
+	SET_BIT(TCCR2,TCCR2_COM21);
+	#elif OC2_NON_PWM == OC_SET
+	SET_BIT(TCCR2,TCCR2_COM20);
+	SET_BIT(TCCR2,TCCR2_COM21);
+	#else
+		#error "Undefined non-PWM mode"
+	#endif
+#elif	TIMER2_WGM == TIMER_PHASE_PWM
+		SET_BIT(TCCR2,TCCR2_WGM20);
+		CLR_BIT(TCCR2,TCCR2_WGM21);
+	#if  PHASE_PWM2_MODE == OC_PHASE_DISCONNECTED
+		CLR_BIT(TCCR2,TCCR2_COM20);
+		CLR_BIT(TCCR2,TCCR2_COM21);
+	#elif PHASE_PWM2_MODE == OC_CLR_CTCUP_SET_CTCDOWN
+		CLR_BIT(TCCR2,TCCR2_COM20);
+		SET_BIT(TCCR2,TCCR2_COM21);
+	#elif PHASE_PWM2_MODE == OC_SET_CTCUP_CLR_CTCDOWN
+		SET_BIT(TCCR2,TCCR2_COM20);
+		SET_BIT(TCCR2,TCCR2_COM21);
+	#else
+		#error"Undefined phase PWM mode "
+	#endif
+#elif 	TIMER2_WGM == TIMER_FAST_PWM
+		SET_BIT(TCCR2,TCCR2_WGM20);
+		SET_BIT(TCCR2,TCCR2_WGM21);
+		/**** set ctc fast pwm mode ****/
+	#if FAST_PWM2_MODE == OC_FAST_DISCONNECTED
+		CLR_BIT(TCCR2,TCCR2_COM20);
+		CLR_BIT(TCCR2,TCCR2_COM21);
+	#elif FAST_PWM2_MODE == OC_CLR_CTC_SET_TOP
+		CLR_BIT(TCCR2,TCCR2_COM20);
+		SET_BIT(TCCR2,TCCR2_COM21);
+	#elif FAST_PWM2_MODE == OC_SET_CTC_CLR_TOP
+		SET_BIT(TCCR2,TCCR2_COM20);
+		SET_BIT(TCCR2,TCCR2_COM21);
+	#else
+		#error"Undefined fast PWM Mode"
+	#endif
+#else
+	#error"Undefined Wave Generation Mode for timer2"
+#endif
+#endif
+		/*******SET PRESCALER ************/
+	#if TIMER2_PRESCALER == NO_CLK_SOURCE
+		CLR_BIT(TCCR2,TCCR2_CS00);
+		CLR_BIT(TCCR2,TCCR2_CS21);
+		CLR_BIT(TCCR2,TCCR2_CS22);
+	#elif TIMER2_PRESCALER == NO_PRESCALING
+		SET_BIT(TCCR2,TCCR2_CS20);
+		CLR_BIT(TCCR2,TCCR2_CS21);
+		CLR_BIT(TCCR2,TCCR2_CS22);
+	#elif TIMER2_PRESCALER == PRESCALER_8
+		CLR_BIT(TCCR2,TCCR2_CS20);
+		SET_BIT(TCCR2,TCCR2_CS21);
+		CLR_BIT(TCCR2,TCCR2_CS22);
+	#elif TIMER2_PRESCALER == PRESCALER_64
+		SET_BIT(TCCR2,TCCR2_CS20);
+		SET_BIT(TCCR2,TCCR2_CS21);
+		CLR_BIT(TCCR2,TCCR2_CS22);
+	#elif TIMER2_PRESCALER == PRESCALER_256
+		CLR_BIT(TCCR2,TCCR0_CS20);
+		CLR_BIT(TCCR2,TCCR0_CS21);
+		SET_BIT(TCCR2,TCCR0_CS22);
+	#elif TIMER2_PRESCALER == PRESCALER_1024
+		SET_BIT(TCCR2,TCCR0_CS20);
+		CLR_BIT(TCCR2,TCCR0_CS21);
+		SET_BIT(TCCR2,TCCR0_CS22);
+	#elif TIMER2_PRESCALER == PRESCALER_FALLING_EDGE
+		CLR_BIT(TCCR2,TCCR0_CS20);
+		SET_BIT(TCCR2,TCCR0_CS21);
+		SET_BIT(TCCR2,TCCR0_CS22);
+	#elif TIMER2_PRESCALER == PRESCALER_RISING_EDGE
+		SET_BIT(TCCR2,TCCR2_CS20);
+		SET_BIT(TCCR2,TCCR2_CS21);
+		SET_BIT(TCCR2,TCCR2_CS22);
+	#else
+		#error "Undefined PRE-scaler type"
+	#endif
+
+}
+void TIMER_1Init(void)
+{
+#if	TIMER1_STATUS == TIMER_ON
+
+#if TIMER1_WGM == TIMER_OVF
+	CLR_BIT(TCCR1A,TCCR1A_WGM10);
+	CLR_BIT(TCCR1A,TCCR1A_WGM11);
+	CLR_BIT(TCCR1B,TCCR1B_WGM12);
+	CLR_BIT(TCCR1B,TCCR1B_WGM13);
+	/**** OVF Interrupt Enable ****/
+	SET_BIT(TIMSK,TIMSK_TOIE1);
+#elif TIMER1_WGM == TIMER_CTC_OCR1A
+	CLR_BIT(TCCR1A,TCCR1A_WGM10);
+	CLR_BIT(TCCR1A,TCCR1A_WGM11);
+	SET_BIT(TCCR1B,TCCR1B_WGM12);
+	CLR_BIT(TCCR1B,TCCR1B_WGM13);
+	/**** CTC INTERRUPT ENABLE ****/
+	SET_BIT(TIMSK,TIMSK_OCIE1A);
+	SET_BIT(TIMSK,TIMSK_OCIE1B);
+	/**** Set CTC1A MODE FOR NON PWM****/
+	#if TIMER_OCR1A_MODE == OC_DISCONNECTED
+		CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+		CLR_BIT(TCCR1A,TCCR1A_COM1A1);
+	#elif TIMER_OCR1A_MODE == OC_TOGGLE
+		SET_BIT(TCCR1A,TCCR1A_COM1A0);
+		CLR_BIT(TCCR1A,TCCR1A_COM1A1);
+	#elif TIMER_OCR1A_MODE == OC_CLEAR
+		CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+		SET_BIT(TCCR1A,TCCR1A_COM1A1);
+	#elif TIMER_OCR1A_MODE == OC_SET
+		SET_BIT(TCCR1A,TCCR1A_COM1A0);
+		SET_BIT(TCCR1A,TCCR1A_COM1A1);
+	#else
+		#error"Undefined mode for ctc 1A "
+	#endif
+	#if TIMER_OCR1B_MODE == OC_DISCONNECTED
+		CLR_BIT(TCCR1A,TCCR1B_COM1B0);
+		CLR_BIT(TCCR1A,TCCR1B_COM1B1);
+	#elif TIMER_OCR1B_MODE == OC_TOGGLE
+		SET_BIT(TCCR1A,TCCR1A_COM1B0);
+		CLR_BIT(TCCR1A,TCCR1A_COM1B1);
+	#elif TIMER_OCR1B_MODE == OC_CLEAR
+		CLR_BIT(TCCR1A,TCCR1A_COM1B0);
+		SET_BIT(TCCR1A,TCCR1A_COM1B1);
+	#elif TIMER_OCR1B_MODE == OC_SET
+		SET_BIT(TCCR1A,TCCR1A_COM1B0);
+		SET_BIT(TCCR1A,TCCR1A_COM1B1);
+	#else
+		#error"Undefined mode for ctc 1B "
+	#endif
+#elif TIMER1_WGM == TIMER_CTC_ICR1
+		CLR_BIT(TCCR1A,TCCR1A_WGM10);
+		CLR_BIT(TCCR1A,TCCR1A_WGM11);
+		SET_BIT(TCCR1A,TCCR1A_WGM12);
+		SET_BIT(TCCR1A,TCCR1A_WGM13);
+	/**** CTC INTERRUPT ENABLE ****/
+		SET_BIT(TIMSK,TIMSK_OCIE1A);
+		SET_BIT(TIMSK,TIMSK_OCIE1B);
+#elif TIMER1_WGM == TIMER_FAST_PWM_ICR1  //14
+		CLR_BIT(TCCR1A,TCCR1A_WGM10);
+		SET_BIT(TCCR1A,TCCR1A_WGM11);
+		SET_BIT(TCCR1B,TCCR1B_WGM12);
+		SET_BIT(TCCR1B,TCCR1B_WGM13);
+	#if FAST_PWM1_MODE == OC_FAST_DISCONNECTED
+			CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+			CLR_BIT(TCCR1A,TCCR1A_COM1A1);
+	#elif FAST_PWM1_MODE == OC_CLR_CTC_SET_TOP
+			CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+			SET_BIT(TCCR1A,TCCR1A_COM1A1);
+	#elif FAST_PWM1_MODE == OC_SET_CTC_CLR_TOP
+			CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+			SET_BIT(TCCR1A,TCCR1A_COM1A1);
+	#else
+		#error"Undefined Fast pwm mode "
+	#endif
+#elif TIMER1_WGM == TIMER_FAST_PWM_OCR1A //15
+		SET_BIT(TCCR1A,TCCR1A_WGM10);
+		SET_BIT(TCCR1A,TCCR1A_WGM11);
+		SET_BIT(TCCR1B,TCCR1B_WGM12);
+		SET_BIT(TCCR1B,TCCR1B_WGM13);
+		/* FAST PWM MODE SELECTION */
+	#if FAST_PWM1_MODE == OC_FAST_DISCONNECTED
+			CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+			CLR_BIT(TCCR1A,TCCR1A_COM1A1);
+	#elif FAST_PWM1_MODE == OC_CLR_CTC_SET_TOP
+			CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+			SET_BIT(TCCR1A,TCCR1A_COM1A1);
+	#elif FAST_PWM1_MODE == OC_SET_CTC_CLR_TOP
+			CLR_BIT(TCCR1A,TCCR1A_COM1A0);
+			SET_BIT(TCCR1A,TCCR1A_COM1A1);
+	#else
+		#error"Undefined Fast pwm mode "
+	#endif
+#else
+	#error"Undefined Wave Genreation Mode for timer1"
+#endif
+#endif
+			/*******SET PRESCALER ************/
+#if TIMER1_PRESCALER == NO_CLK_SOURCE
+			CLR_BIT(TCCR1B,TCCR1B_CS10);
+			CLR_BIT(TCCR1B,TCCR1B_CS11);
+			CLR_BIT(TCCR1B,TCCR1B_CS12);
+#elif TIMER1_PRESCALER == NO_PRESCALING
+			SET_BIT(TCCR1B,TCCR1B_CS10);
+			CLR_BIT(TCCR1B,TCCR1B_CS11);
+			CLR_BIT(TCCR1B,TCCR1B_CS12);
+#elif TIMER1_PRESCALER == PRESCALER_8
+			CLR_BIT(TCCR1B,TCCR1B_CS10);
+			SET_BIT(TCCR1B,TCCR1B_CS11);
+			CLR_BIT(TCCR1B,TCCR1B_CS12);
+#elif TIMER1_PRESCALER == PRESCALER_64
+			SET_BIT(TCCR1B,TCCR1B_CS10);
+			SET_BIT(TCCR1B,TCCR1B_CS11);
+			CLR_BIT(TCCR1B,TCCR1B_CS12);
+#elif TIMER1_PRESCALER == PRESCALER_256
+			CLR_BIT(TCCR1B,TCCR1B_CS10);
+			CLR_BIT(TCCR1B,TCCR1B_CS11);
+			SET_BIT(TCCR1B,TCCR1B_CS12);
+#elif TIMER1_PRESCALER == PRESCALER_1024
+			SET_BIT(TCCR1B,TCCR1B_CS10);
+			CLR_BIT(TCCR1B,TCCR1B_CS11);
+			SET_BIT(TCCR1B,TCCR1B_CS12);
+#elif TIMER1_PRESCALER == PRESCALER_FALLING_EDGE
+			CLR_BIT(TCCR1B,TCCR1B_CS10);
+			SET_BIT(TCCR1B,TCCR1B_CS11);
+			SET_BIT(TCCR1B,TCCR1B_CS12);
+#elif TIMER1_PRESCALER == PRESCALER_RISING_EDGE
+			SET_BIT(TCCR1B,TCCR1B_CS10);
+			SET_BIT(TCCR1B,TCCR1B_CS11);
+			SET_BIT(TCCR1B,TCCR1B_CS12);
+#else
+		#error "Undefined PRE-scaler type"
+#endif
+}
+void TIMER_SetCTCValue(u16 CTC_Value,u8 number)//2
+{
+	switch(number)
+	{
+	case TIMER0:
+	OCR0 = CTC_Value;
+	break;
+	case TIMER1 :
+		OCR1A =  CTC_Value;
+		OCR1B = CTC_Value;
+		break;
+	case TIMER2 :
+		OCR2 = CTC_Value;
+		break;
+	default:
+		break;
+	}
+}
+void TIMER0_CTCInterruptDisable(void)//3
+{
+	CLR_BIT(TIMSK,TIMSK_OCIE0);
+}
+void TIMER0_OVFInterruptDisable(void)//4
+{
+	CLR_BIT(TIMSK,TIMSK_TOIE0);
+}
+void TIMER2_CTCInterruptDisable(void)
+{
+	CLR_BIT(TIMSK,TIMSK_OCIE2);
+}
+void TIMER2_OVFInterruptDisable(void)
+{
+	CLR_BIT(TIMSK,TIMSK_TOIE2);
+}
+void TIMER1_OVFInterruptDisable(void)
+{
+	CLR_BIT(TIMSK,TIMSK_TOIE1);
+}
+void TIMER1_CTC1AInterruptDisable(void)
+{
+	CLR_BIT(TIMSK,TIMSK_OCIE1A);
+}
+void TIMER1_CTC1BInterruptDisable(void)
+{
+	CLR_BIT(TIMSK,TIMSK_OCIE1B);
+}
+void TIMER_Preload(u16 preload,u8 number)//5
+{
+	switch(number)
+	{
+	case TIMER0 :
+	TCNT0 = preload;
+	break;
+	case TIMER1 :
+	TCNT1 = preload;
+	break;
+	case TIMER2 :
+	TCNT2 = preload;
+	break;
+	default:
+		break;
+	}
+
+}
+void TIMER1_SetTopValue(u16 Top_Value)
+{
+	ICR1 = Top_Value;
+}
+u16 TIMER1_GetValue(void)
+{
+	return ICR1;
+}
+void TIMER0_SetInterval(u16 interval, void (*ovf_ptr)(void))//6
+{
+	G_TIMER_OVF = ovf_ptr;
+	G_U32Counter = interval;
+}
+void TIMER_CTC0SetCallBack(void(*CTC0_PTR)(void))//7
+{
+	if(CTC0_PTR != NULL)
+	{
+		G_TIMER_CTC0 =CTC0_PTR;
+	}
+}
+void TIMER2_SetInterval(u16 interval, void(*ovf2_ptr)(void))
+{
+	G_TIMER_OVF2 = ovf2_ptr;
+	G_U32Counter = interval;
+}
+void TIMER_CTC2SetCallBack(void(*CTC2_PTR)(void))
+{
+	if(CTC2_PTR != NULL)
+		{
+			G_TIMER_CTC2 = CTC2_PTR;
+		}
+}
+void TIMER1_SetInterval(u16 interval ,void(*ovf1_ptr)(void))
+{
+	G_TIMER_OVF1 = ovf1_ptr;
+	G_U32Counter = interval;
+}
+void TIMER_CTC1ASetCallBack(void(*CTC1A_PTR)(void))
+{
+	if(CTC1A_PTR != NULL)
+		{
+			G_TIMER_CTC1A = CTC1A_PTR;
+		}
+}
+void TIMER_CTC1BSetCallBack(void(*CTC1B_PTR)(void))
+{
+	if(CTC1B_PTR != NULL)
+		{
+			G_TIMER_CTC1B = CTC1B_PTR;
+		}
+}

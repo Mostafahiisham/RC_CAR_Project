@@ -1,0 +1,84 @@
+/*
+ * ADC.h
+ *
+ *  Created on: Aug 22, 2023
+ *      Author: Mostafa Hisham
+ *      Layer : MCAL
+ *      SWC   : ADC - PROTOTYPE
+ */
+
+#ifndef MCAL_ADC_H_
+#define MCAL_ADC_H_
+
+
+
+typedef enum
+{
+    ADC_CHANNEL_ADC0,
+    ADC_CHANNEL_ADC1,
+    ADC_CHANNEL_ADC2,
+    ADC_CHANNEL_ADC3,
+    ADC_CHANNEL_ADC4,
+    ADC_CHANNEL_ADC5,
+    ADC_CHANNEL_ADC6,
+    ADC_CHANNEL_ADC7,
+    ADC_CHANNEL_ADC0_ADC0_10X,
+    ADC_CHANNEL_ADC1_ADC0_10X,
+    ADC_CHANNEL_ADC0_ADC0_200X,
+    ADC_CHANNEL_ADC1_ADC0_200X,
+    ADC_CHANNEL_ADC2_ADC2_10X,
+    ADC_CHANNEL_ADC3_ADC2_10X,
+    ADC_CHANNEL_ADC2_ADC2_200X,
+    ADC_CHANNEL_ADC3_ADC2_200X,
+    ADC_CHANNEL_ADC0_ADC1_1X,
+    ADC_CHANNEL_ADC1_ADC1_1X,
+    ADC_CHANNEL_ADC2_ADC1_1X,
+    ADC_CHANNEL_ADC3_ADC1_1X,
+    ADC_CHANNEL_ADC4_ADC1_1X,
+    ADC_CHANNEL_ADC5_ADC1_1X,
+    ADC_CHANNEL_ADC6_ADC1_1X,
+    ADC_CHANNEL_ADC7_ADC1_1X,
+    ADC_CHANNEL_ADC0_ADC2_1X,
+    ADC_CHANNEL_ADC1_ADC2_1X,
+    ADC_CHANNEL_ADC2_ADC2_1X,
+    ADC_CHANNEL_ADC3_ADC2_1X,
+    ADC_CHANNEL_ADC4_ADC2_1X,
+    ADC_CHANNEL_ADC5_ADC2_1X,
+    ADC_CHANNEL_1_22_V,
+    ADC_CHANNEL_GND
+} ADC_ChannelType;
+
+
+#define	ADC_REF_AREF			1
+#define	ADC_REF_AVCC			2
+#define	ADC_REF_INT				3
+
+
+#define  	ADC_PRESCALER_2 	1
+#define   	ADC_PRESCALER_4		2
+#define    	ADC_PRESCALER_8		3
+#define    	ADC_PRESCALER_16	4
+#define		ADC_PRESCALER_32	5
+#define    ADC_PRESCALER_64		6
+#define    ADC_PRESCALER_128	7
+
+
+#define	ADC_RIGHT_ADJUST		1
+#define	ADC_LEFT_ADJUST			2
+
+
+#define	TRIGGER_ENABLE			1
+#define	TRIGGER_DISABLE			2
+
+
+#define	ADC_INTERRUPT_ENABLE		1
+#define	ADC_INTERRUPT_DISABLE		2
+
+
+
+/*POLLING ADC */
+void ADC_Init(void);
+u8 ADC_AnalogReadSynchronous(ADC_ChannelType channel, u16 *ADC_Reading);
+u8 ADC_AnalogReadASynchronous(ADC_ChannelType channel,void(*ADC_PTR)(void),u16 *ADC_Reading);
+
+#endif /* MCAL_ADC_H_ */

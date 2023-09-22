@@ -1,0 +1,132 @@
+/*
+ * TIMER_Cfg.h
+ *
+ *  Created on: Aug 28, 2023
+ *      Author: Mostafa Hisham
+ *      Layer : MCAL
+ *      SWC   : TIMER - CONFIGURATION
+ *
+ */
+
+#ifndef MCAL_TIMER_CFG_H_
+#define MCAL_TIMER_CFG_H_
+
+/************************************************/
+/**************TIMER0 COMFIGURATION*************/
+#define TIMER0_STATUS	TIMER_ON
+#if	TIMER0_STATUS	==	TIMER_ON
+/*
+ * TIMER_OVF
+ * TIMER_CTC
+ * TIMER_PHASE_PWM
+ * TIMER_FAST_PWM
+ */
+#define TIMER0_WGM 		 TIMER_OVF
+/*
+  *
+  * OC_DISCONNECTED
+  * OC_TOGGLE
+  * OC_CLEAR
+  * OC_SET
+  */
+#define NON_PWM_OC0		OC_DISCONNECTED
+/*
+ * OC_PHASE_DISCONNECTED
+ * OC_CLR_CTCUP_SET_CTCDOWN
+ * OC_SET_CTCUP_CLR_CTCDOWN
+ */
+#define  PHASE_PWM0_MODE		OC_PHASE_DISCONNECTED
+/*
+ * OC_FAST_DISCONNECTED
+ * OC_CLR_CTC_SET_TOP
+ * OC_SET_CTC_CLR_TOP
+ */
+#define FAST_PWM0_MODE		OC_CLR_CTC_SET_TOP
+
+/*
+ *  NO_CLK_SOURCE
+ * NO_PRESCALING
+ *	PRESCALER_8
+ *	PRESCALER_64
+ * PRESCALER_256
+ * PRESCALER_1024
+ * PRESCALER_FALLING_EDGE
+ * PRESCALER_RISING_EDGE
+ */
+
+#define TIMER0_PRESCALER	PRESCALER_8
+#endif
+/*********************************************************************************/
+/**************TIMER2 COMFIGURATION*************/
+#define TIMER2_STATUS	TIMER_ON
+#if TIMER2_STATUS	==	TIMER_ON
+/*
+ * TIMER_OVF
+ * TIMER_CTC
+ * TIMER_PHASE_PWM
+ * TIMER_FAST_PWM
+ */
+#define TIMER2_WGM		TIMER_FAST_PWM
+/*
+  *
+  * OC_DISCONNECTED
+  * OC_TOGGLE
+  * OC_CLEAR
+  * OC_SET
+  */
+#define OC2_NON_PWM		OC_DISCONNECTED
+/*
+ * OC_PHASE_DISCONNECTED
+ * OC_CLR_CTCUP_SET_CTCDOWN
+ * OC_SET_CTCUP_CLR_CTCDOWN
+ */
+#define PHASE_PWM2_MODE		OC_PHASE_DISCONNECTED
+/*
+ * OC_FAST_DISCONNECTED
+ * OC_CLR_CTC_SET_TOP
+ * OC_SET_CTC_CLR_TOP
+ */
+#define FAST_PWM2_MODE  	OC_CLR_CTC_SET_TOP
+
+#define TIMER2_PRESCALER    PRESCALER_8
+#endif
+/**************************************************************************/
+ /********TIMER1 CONFIGURATIONS *******************/
+#define	TIMER1_STATUS		TIMER_ON
+#if TIMER1_STATUS == TIMER_ON
+/*
+ * TIMER_OVF
+ * TIMER_CTC_OCR1A
+ * TIMER_CTC_ICR
+ * TIMER_FAST_PWM_ICR1
+ * TIMER_FAST_PWM_OCR1A
+ */
+#define TIMER1_WGM 	TIMER_OVF
+/*
+  *
+  * OC_DISCONNECTED
+  * OC_TOGGLE
+  * OC_CLEAR
+  * OC_SET
+  */
+#define TIMER_OCR1A_MODE 	OC_DISCONNECTED
+#define TIMER_OCR1B_MODE 	OC_DISCONNECTED
+/*
+ * OC_FAST_DISCONNECTED
+ * OC_CLR_CTC_SET_TOP
+ * OC_SET_CTC_CLR_TOP
+ */
+#define FAST_PWM1_MODE			OC_FAST_DISCONNECTED
+/*
+ *  NO_CLK_SOURCE
+ * NO_PRESCALING
+ *	PRESCALER_8
+ *	PRESCALER_64
+ * PRESCALER_256
+ * PRESCALER_1024
+ * PRESCALER_FALLING_EDGE
+ * PRESCALER_RISING_EDGE
+ */
+#define TIMER1_PRESCALER 		NO_PRESCALING
+#endif
+#endif /* MCAL_TIMER_CFG_H_ */
